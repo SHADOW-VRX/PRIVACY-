@@ -1,27 +1,27 @@
 // Chat functionality
-let currentRoomId = '';
-let currentUsername = '';
-let pendingFile = null;
-let typingTimeout = null;
 
 function initChat(socket) {
+    console.log('Initializing chat handlers...');
+    
     // Socket event handlers
     socket.on('room_created', (data) => {
-        currentRoomId = data.roomId;
-        currentUsername = data.username;
-        showToast(`Room created: ${currentRoomId}`, 'fa-solid fa-key');
+        console.log('Room created:', data);
+        window.currentRoomId = data.roomId;
+        window.currentUsername = data.username;
+        showToast(`Room created: ${window.currentRoomId}`, 'fa-solid fa-key');
         navigateTo('chat');
     });
     
     socket.on('room_joined', (data) => {
-        currentRoomId = data.roomId;
-        currentUsername = data.username;
+        console.log('Room joined:', data);
+        window.currentRoomId = data.roomId;
+        window.currentUsername = data.username;
         showToast(`Connected to ${data.roomId}`, 'fa-solid fa-check');
         navigateTo('chat');
     });
     
     socket.on('receive_message', (data) => {
-        const isOwn = (data.username === currentUsername);
+        const isOwn = (data.username === window.currentUsername);
         addMessage(data, isOwn);
     });
     
@@ -38,7 +38,7 @@ function initChat(socket) {
     });
     
     socket.on('user_typing', (data) => {
-        if (data.username !== currentUsername) {
+        if (data.username !== window.currentUsername) {
             const typingElem = document.getElementById('typingUsername');
             if (typingElem) typingElem.textContent = data.username;
             showTypingIndicator();
@@ -52,10 +52,22 @@ function initChat(socket) {
             setTimeout(() => navigateTo('home'), 2000);
         }
     });
+    
+    socket.on('connected', (data) => {
+        myUserId = data.userId;
+        console.log('Connected with user ID:', myUserId);
+    });
 }
 
 function enterRoom() {
+    console.log('enterRoom called');
     const socket = getSocket();
+    if (!socket) {
+        showToast('Connecting to server...', 'fa-solid fa-spinner');
+        setTimeout(() => enterRoom(), 500);
+        return;
+    }
+    
     const username = document.getElementById('createUsername').value.trim();
     if (!username) {
         showToast('Please enter a username', 'fa-solid fa-user');
@@ -65,6 +77,7 @@ function enterRoom() {
     
     const roomId = document.getElementById('generatedRoomId').textContent;
     if (roomId && roomId !== '------') {
+        console.log('Creating room with ID:', roomId, 'username:', username);
         socket.emit('create_room_with_id', { roomId, username });
     } else {
         showToast('Generating room ID...', 'fa-solid fa-spinner');
@@ -73,7 +86,14 @@ function enterRoom() {
 }
 
 function joinRoom() {
+    console.log('joinRoom called');
     const socket = getSocket();
+    if (!socket) {
+        showToast('Connecting to server...', 'fa-solid fa-spinner');
+        setTimeout(() => joinRoom(), 500);
+        return;
+    }
+    
     const username = document.getElementById('joinUsername').value.trim();
     if (!username) {
         showToast('Please enter a username', 'fa-solid fa-user');
@@ -94,18 +114,27 @@ function joinRoom() {
         return;
     }
     
+    console.log('Joining room:', roomId, 'username:', username);
     socket.emit('join_room', { roomId, username });
 }
 
 function leaveRoom() {
+    console.log('leaveRoom called');
     const socket = getSocket();
-    if (socket && currentRoomId) {
+    if (socket && window.currentRoomId) {
         socket.emit('leave_room');
-        currentRoomId = '';
-        currentUsername = '';
+        window.currentRoomId = '';
+        window.currentUsername = '';
         pendingFile = null;
-        endCall(); // End any active call
+        endCall();
     }
+    
+    // Hide call buttons
+    const voiceBtn = document.getElementById('voiceCallBtn');
+    const videoBtn = document.getElementById('videoCallBtn');
+    if (voiceBtn) voiceBtn.style.display = 'none';
+    if (videoBtn) videoBtn.style.display = 'none';
+    
     navigateTo('home');
 }
 
@@ -157,7 +186,7 @@ function sendMessage() {
 
 function handleTyping() {
     const socket = getSocket();
-    if (!socket || !currentRoomId) return;
+    if (!socket || !window.currentRoomId) return;
     
     socket.emit('typing', { isTyping: true });
     
@@ -167,29 +196,42 @@ function handleTyping() {
     }, 1000);
 }
 
+function updateUserCount(count) {
+    const statusText = document.querySelector('.status-indicator span');
+    if (statusText) {
+        statusText.textContent = `${count} ${count === 1 ? 'user' : 'users'}`;
+    }
+}
+
+function handleChatKeydown(event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
 // Call integration
 function startVoiceCall() {
-    if (!currentRoomId) {
+    if (!window.currentRoomId) {
         showToast('Join a room first', 'fa-solid fa-exclamation-triangle');
         return;
     }
-    // Find other user in room (simplified - calls first available user)
-    // In production, you'd want a user selection UI
-    showToast('Select a user to call from the user list', 'fa-solid fa-info-circle');
+    showToast('Voice call feature - Select a user from the room', 'fa-solid fa-info-circle');
 }
 
 function startVideoCall() {
-    if (!currentRoomId) {
+    if (!window.currentRoomId) {
         showToast('Join a room first', 'fa-solid fa-exclamation-triangle');
         return;
     }
-    showToast('Select a user to call from the user list', 'fa-solid fa-info-circle');
+    showToast('Video call feature - Select a user from the room', 'fa-solid fa-info-circle');
 }
 
-// Make functions global
-window.enterRoom = enterRoom;
-window.joinRoom = joinRoom;
-window.leaveRoom = leaveRoom;
-window.sendMessage = sendMessage;
-window.startVoiceCall = startVoiceCall;
-window.startVideoCall = startVideoCall;
+// Connect chat input handler
+document.addEventListener('DOMContentLoaded', () => {
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.addEventListener('keydown', handleChatKeydown);
+        chatInput.addEventListener('input', handleTyping);
+    }
+});
