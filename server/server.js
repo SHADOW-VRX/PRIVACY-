@@ -1,174 +1,100 @@
-const { callLimiter } = require('../middleware/rateLimiter');
-const roomService = require('../services/room.service');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
+const path = require('path');
+const config = require('./config/env');
+const { securityHeaders, corsConfig } = require('./middleware/securityHeaders');
+const { generalLimiter } = require('./middleware/rateLimiter');
+const roomService = require('./services/room.service');
+const { getVersionInfo } = require('./services/version.service');
 
-// Store active calls per room
-const activeCalls = new Map(); // roomId -> { callerId, calleeId, type }
+const app = express();
+const server = http.createServer(app);
 
-module.exports = (io, socket, chatState) => {
-  const getCurrentRoom = () => chatState.currentRoomId;
-  const getCurrentUsername = () => chatState.currentUsername;
+// Apply security middleware
+app.use(securityHeaders);
+app.use(corsConfig);
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Call offer
-  socket.on('call_offer', (data) => {
-    if (!callLimiter.isAllowed(socket.id, 'call_offer')) {
-      socket.emit('call_error', { error: 'Call rate limit exceeded. Please wait.' });
-      return;
-    }
+// Apply rate limiting
+app.use('/api/', generalLimiter);
 
-    const { targetUserId, offer, callType } = data;
-    const roomId = getCurrentRoom();
-    
-    if (!roomId) {
-      socket.emit('call_error', { error: 'Not in a room' });
-      return;
-    }
-    
-    const room = roomService.getRoom(roomId);
-    if (!room) {
-      socket.emit('call_error', { error: 'Room no longer exists' });
-      return;
-    }
-    
-    // Find target socket
-    let targetSocketId = null;
-    let targetUsername = null;
-    for (const [socketId, userInfo] of room.users) {
-      if (userInfo.userId === targetUserId) {
-        targetSocketId = socketId;
-        targetUsername = userInfo.username;
-        break;
-      }
-    }
-    
-    if (!targetSocketId) {
-      socket.emit('call_error', { error: 'User no longer in room' });
-      return;
-    }
-    
-    // Store active call
-    activeCalls.set(roomId, {
-      callerId: socket.id,
-      calleeId: targetSocketId,
-      callerUserId: chatState.userId,
-      calleeUserId: targetUserId,
-      callerUsername: getCurrentUsername(),
-      calleeUsername: targetUsername,
-      type: callType,
-      active: true
-    });
-    
-    io.to(targetSocketId).emit('incoming_call', {
-      fromUserId: chatState.userId,
-      fromUsername: getCurrentUsername(),
-      offer,
-      callType
-    });
-    
-    console.log(`📞 Call offer from ${getCurrentUsername()} to ${targetUsername} in ${roomId} (${callType})`);
+// Serve static files
+app.use(express.static(path.join(__dirname, '../public')));
+
+// API Routes
+app.get('/api/version', (req, res) => {
+  res.json(getVersionInfo(config.NODE_ENV));
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'healthy', 
+    timestamp: Date.now(),
+    activeRooms: roomService.getActiveRoomsCount()
   });
+});
 
-  // Call answer
-  socket.on('call_answer', (data) => {
-    const { fromUserId, answer } = data;
-    const roomId = getCurrentRoom();
-    
-    if (!roomId) return;
-    
-    const room = roomService.getRoom(roomId);
-    if (!room) return;
-    
-    // Find caller socket
-    let callerSocketId = null;
-    for (const [socketId, userInfo] of room.users) {
-      if (userInfo.userId === fromUserId) {
-        callerSocketId = socketId;
-        break;
-      }
-    }
-    
-    if (callerSocketId) {
-      io.to(callerSocketId).emit('call_answer', { answer });
-    }
-  });
+// Socket.IO with sticky session support for load balancing
+const io = new Server(server, {
+  cors: {
+    origin: config.CORS_ORIGIN,
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  allowUpgrades: true
+});
 
-  // ICE candidate
-  socket.on('ice_candidate', (data) => {
-    const { targetUserId, candidate } = data;
-    const roomId = getCurrentRoom();
-    
-    if (!roomId) return;
-    
-    const room = roomService.getRoom(roomId);
-    if (!room) return;
-    
-    let targetSocketId = null;
-    for (const [socketId, userInfo] of room.users) {
-      if (userInfo.userId === targetUserId) {
-        targetSocketId = socketId;
-        break;
-      }
-    }
-    
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('ice_candidate', { candidate });
-    }
-  });
+// Track client state for each socket
+io.on('connection', (socket) => {
+  console.log(`🔌 Client connected: ${socket.id}`);
+  
+  // Initialize chat state for this socket
+  const chatState = { currentRoomId: null, currentUsername: null, userId: null };
+  
+  // Initialize chat socket handlers
+  const chatHandlers = require('./sockets/chat.socket')(io, socket);
+  chatState.currentRoomId = chatHandlers.currentRoomId;
+  chatState.currentUsername = chatHandlers.currentUsername;
+  chatState.userId = chatHandlers.userId;
+  
+  // Initialize call socket handlers with access to chat state
+  require('./sockets/call.socket')(io, socket, chatState);
+});
 
-  // Call rejected
-  socket.on('call_rejected', (data) => {
-    const { fromUserId } = data;
-    const roomId = getCurrentRoom();
-    
-    if (!roomId) return;
-    
-    const room = roomService.getRoom(roomId);
-    if (!room) return;
-    
-    let callerSocketId = null;
-    for (const [socketId, userInfo] of room.users) {
-      if (userInfo.userId === fromUserId) {
-        callerSocketId = socketId;
-        break;
-      }
-    }
-    
-    if (callerSocketId) {
-      io.to(callerSocketId).emit('call_rejected', { byUsername: getCurrentUsername() });
-    }
-    
-    // Clear active call
-    if (activeCalls.has(roomId)) {
-      activeCalls.delete(roomId);
-    }
-  });
+// Periodic cleanup of stale rooms
+setInterval(() => {
+  const cleaned = roomService.cleanupStaleRooms(3600000);
+  if (cleaned > 0) {
+    console.log(`🧹 Cleaned ${cleaned} stale PRIVACY rooms`);
+  }
+}, 300000);
 
-  // Call ended
-  socket.on('call_ended', (data) => {
-    const roomId = getCurrentRoom();
-    if (!roomId) return;
-    
-    const call = activeCalls.get(roomId);
-    if (call) {
-      // Notify other participant
-      const otherSocketId = call.callerId === socket.id ? call.calleeId : call.callerId;
-      io.to(otherSocketId).emit('call_ended');
-      activeCalls.delete(roomId);
-      console.log(`📞 Call ended in ${roomId}`);
-    } else {
-      // Broadcast to room that call ended
-      socket.to(roomId).emit('call_ended');
-    }
-  });
+// Serve index.html for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'));
+});
 
-  // Cleanup calls on disconnect
-  socket.on('disconnect', () => {
-    for (const [roomId, call] of activeCalls) {
-      if (call.callerId === socket.id || call.calleeId === socket.id) {
-        const otherSocketId = call.callerId === socket.id ? call.calleeId : call.callerId;
-        io.to(otherSocketId).emit('call_ended');
-        activeCalls.delete(roomId);
-        console.log(`📞 Call cleaned up for disconnected user in ${roomId}`);
-      }
-    }
-  });
-};
+// Start server
+server.listen(config.PORT, () => {
+  console.log(`
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║                                                                   ║
+    ║   🔒 PRIVACY — Private Chats. Zero Traces.                        ║
+    ║                                                                   ║
+    ║   📡 WebSocket: ws://localhost:${config.PORT}                          ║
+    ║   🌐 HTTP: http://localhost:${config.PORT}                         ║
+    ║                                                                   ║
+    ║   💀 Zero Persistence | No Database                               ║
+    ║   🔥 Rooms Self-Destruct When Empty                               ║
+    ║   👤 Custom Usernames | Left/Right Chat Layout                    ║
+    ║   🚫 No Duplicate Messages | Real-time                            ║
+    ║   🎥 Voice & Video Calls | WebRTC                                 ║
+    ║   🛡️ Rate Limited | Security Hardened                            ║
+    ║                                                                   ║
+    ║   Environment: ${config.NODE_ENV.padEnd(20)}                        ║
+    ║                                                                   ║
+    ╚═══════════════════════════════════════════════════════════════════╝
+  `);
+});
