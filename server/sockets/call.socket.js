@@ -2,7 +2,7 @@ const { callLimiter } = require('../middleware/rateLimiter');
 const roomService = require('../services/room.service');
 
 // Store active calls per room
-const activeCalls = new Map(); // roomId -> { callerId, calleeId, type }
+const activeCalls = new Map();
 
 module.exports = (io, socket, chatState) => {
   const getCurrentRoom = () => chatState.currentRoomId;
@@ -29,7 +29,6 @@ module.exports = (io, socket, chatState) => {
       return;
     }
     
-    // Find target socket
     let targetSocketId = null;
     let targetUsername = null;
     for (const [socketId, userInfo] of room.users) {
@@ -45,7 +44,6 @@ module.exports = (io, socket, chatState) => {
       return;
     }
     
-    // Store active call
     activeCalls.set(roomId, {
       callerId: socket.id,
       calleeId: targetSocketId,
@@ -77,7 +75,6 @@ module.exports = (io, socket, chatState) => {
     const room = roomService.getRoom(roomId);
     if (!room) return;
     
-    // Find caller socket
     let callerSocketId = null;
     for (const [socketId, userInfo] of room.users) {
       if (userInfo.userId === fromUserId) {
@@ -136,7 +133,6 @@ module.exports = (io, socket, chatState) => {
       io.to(callerSocketId).emit('call_rejected', { byUsername: getCurrentUsername() });
     }
     
-    // Clear active call
     if (activeCalls.has(roomId)) {
       activeCalls.delete(roomId);
     }
@@ -149,13 +145,11 @@ module.exports = (io, socket, chatState) => {
     
     const call = activeCalls.get(roomId);
     if (call) {
-      // Notify other participant
       const otherSocketId = call.callerId === socket.id ? call.calleeId : call.callerId;
       io.to(otherSocketId).emit('call_ended');
       activeCalls.delete(roomId);
       console.log(`📞 Call ended in ${roomId}`);
     } else {
-      // Broadcast to room that call ended
       socket.to(roomId).emit('call_ended');
     }
   });
