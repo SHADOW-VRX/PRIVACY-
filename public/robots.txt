@@ -1,0 +1,11 @@
+# robots.txt for PRIVACY Chat
+# Allow all crawlers to index the site
+
+User-agent: *
+Allow: /
+
+# Disable crawling of WebSocket endpoints
+Disallow: /socket.io/
+
+# Sitemap location
+Sitemap: https://your-domain.com/sitemap.xml

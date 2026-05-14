@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIVACY — Private Chats. Zero Traces. Secure Anonymous Chat</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="PRIVACY — Private Chats. Zero Traces. Ephemeral chat application with self-destructing rooms. No database, no logs, end-to-end encrypted real-time messaging with voice and video calls.">
+    <meta name="keywords" content="private chat, anonymous chat, secure messaging, ephemeral chat, zero traces, encrypted chat, temporary chat room, privacy chat, webrtc chat, voice call, video call">
+    <meta name="author" content="PRIVACY">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://privacy-chat.example.com/">
+    <meta property="og:title" content="PRIVACY — Private Chats. Zero Traces.">
+    <meta property="og:description" content="Ephemeral chat application with self-destructing rooms. No database. No logs. End-to-end encrypted.">
+    <meta property="og:image" content="/assets/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://privacy-chat.example.com/">
+    <meta property="twitter:title" content="PRIVACY — Private Chats. Zero Traces.">
+    <meta property="twitter:description" content="Ephemeral chat application with self-destructing rooms. No database. No logs.">
+    <meta property="twitter:image" content="/assets/twitter-image.png">
+    
+    <!-- Canonical URL (update with your domain) -->
+    <link rel="canonical" href="https://privacy-chat.example.com/">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <!-- Structured Data JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PRIVACY Chat",
+      "description": "Ephemeral private chat application with self-destructing rooms",
+      "applicationCategory": "Communication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "featureList": "Real-time messaging, Voice calls, Video calls, Self-destructing rooms, No database, Anonymous"
+    }
+    </script>
+</head>
+<body>
+
+    <div class="scanline-overlay"></div>
+    <div class="grid-bg"></div>
+    <div class="corner-accent tl"></div>
+    <div class="corner-accent tr"></div>
+    <div class="corner-accent bl"></div>
+    <div class="corner-accent br"></div>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="file-preview-overlay" id="filePreviewOverlay" onclick="if(window.closePreview) closePreview()">
+        <div class="file-preview-content" onclick="event.stopPropagation()">
+            <button class="file-preview-close" onclick="if(window.closePreview) closePreview()">[✕] CLOSE</button>
+            <img id="previewImage" src="" alt="Image preview">
+        </div>
+    </div>
+
+    <div class="app-container">
+
+        <!-- Home Screen -->
+        <div class="screen active" id="homeScreen">
+            <h1 class="glitch-title neon-flicker" data-text="PRIVACY">PRIVACY</h1>
+            <p class="tagline">Private chats. Zero traces.<span class="cursor-blink"></span></p>
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="if(window.navigateTo) navigateTo('createRoom')">
+                    <i class="fa-solid fa-plus"></i>&nbsp; Create Room
+                </button>
+                <button class="btn" onclick="if(window.navigateTo) navigateTo('joinRoom')">
+                    <i class="fa-solid fa-right-to-bracket"></i>&nbsp; Join Room
+                </button>
+            </div>
+            <div class="security-badges">
+                <div class="badge"><i class="fa-solid fa-shield-halved"></i> End-to-End</div>
+                <div class="badge"><i class="fa-solid fa-ghost"></i> Anonymous</div>
+                <div class="badge"><i class="fa-solid fa-fire"></i> No Logs</div>
+                <div class="badge"><i class="fa-solid fa-lock"></i> Encrypted</div>
+            </div>
+            <div class="ascii-art">
+ ██▓███   ██▀███   ██▓ ██▒   █▓ ▄▄▄       ▄████▄▓██   ██▓
+▓██░  ██▒▓██ ▒ ██▒▓██▒▓██░   █▒▒████▄    ▒██▀ ▀█ ▒██  ██▒
+▓██░ ██▓▒▓██ ░▄█ ▒▒██▒ ▓██  █▒░▒██  ▀█▄  ▒▓█    ▄ ▒██ ██░
+▒██▄█▓▒ ▒▒██▀▀█▄  ░██░  ▒██ █░░░██▄▄▄▄██ ▒▓▓▄ ▄██▒░ ▐██▓░
+▒██▒ ░  ░░██▓ ▒██▒░██░   ▒▀█░   ▓█   ▓██▒▒ ▓███▀ ░░ ██▒▓░
+▒▓▒░ ░  ░░ ▒▓ ░▒▓░░▓     ░ ▐░   ▒▒   ▓▒█░░ ░▒ ▒  ░ ██▒▒▒ 
+            </div>
+            <span class="version-tag">v2.0.0 // SECURE CHANNEL</span>
+        </div>
+
+        <!-- Create Room Screen -->
+        <div class="screen" id="createRoomScreen">
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-title">PRIVACY://CREATE-ROOM</span>
+                </div>
+                <div class="back-link" onclick="if(window.navigateTo) navigateTo('home')">
+                    <i class="fa-solid fa-chevron-left"></i> BACK
+                </div>
+                
+                <div class="terminal-label">
+                    <span class="prompt">$</span> CHOOSE_USERNAME :
+                </div>
+                <div class="username-input-wrapper">
+                    <span class="username-prefix"><i class="fa-solid fa-user"></i> @</span>
+                    <input type="text" class="username-input" id="createUsername" placeholder="Your name..." maxlength="20" autocomplete="off">
+                </div>
+                
+                <div class="terminal-label">
+                    <span class="prompt">$</span> GENERATED_ROOM_ID :
+                </div>
+                <div class="room-id-display" id="generatedRoomId">------</div>
+                
+                <div class="btn-group" style="margin-top: 20px;">
+                    <button class="btn btn-small" onclick="if(window.generateRoomId) window.generateRoomId()">
+                        <i class="fa-solid fa-rotate"></i>&nbsp; Regenerate
+                    </button>
+                    <button class="btn btn-small" onclick="if(window.copyRoomId) window.copyRoomId()">
+                        <i class="fa-regular fa-copy"></i>&nbsp; Copy ID
+                    </button>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" onclick="if(window.enterRoom) window.enterRoom()">
+                    <i class="fa-solid fa-terminal"></i>&nbsp; Enter Room
+                </button>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div class="screen" id="joinRoomScreen">
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-title">PRIVACY://JOIN-ROOM</span>
+                </div>
+                <div class="back-link" onclick="if(window.navigateTo) navigateTo('home')">
+                    <i class="fa-solid fa-chevron-left"></i> BACK
+                </div>
+                
+                <div class="terminal-label">
+                    <span class="prompt">$</span> CHOOSE_USERNAME :
+                </div>
+                <div class="username-input-wrapper">
+                    <span class="username-prefix"><i class="fa-solid fa-user"></i> @</span>
+                    <input type="text" class="username-input" id="joinUsername" placeholder="Your name..." maxlength="20" autocomplete="off">
+                </div>
+                
+                <div class="terminal-label">
+                    <span class="prompt">$</span> ENTER_ROOM_ID :
+                </div>
+                <div class="terminal-input-wrapper">
+                    <span class="input-prefix">>&nbsp;</span>
+                    <input type="text" class="terminal-input" id="joinRoomInput" placeholder="ROOM_ID..." maxlength="8" autocomplete="off" spellcheck="false" oninput="this.value = this.value.toUpperCase()" onkeydown="if(event.key==='Enter' && window.joinRoom) window.joinRoom()">
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 6px;">
+                    <i class="fa-solid fa-circle-info"></i> Enter the 6–8 character Room ID to connect
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" onclick="if(window.joinRoom) window.joinRoom()">
+                    <i class="fa-solid fa-right-to-bracket"></i>&nbsp; Join Chat
+                </button>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div class="screen" id="chatScreen">
+            <div class="chat-container">
+                <div class="chat-topbar">
+                    <div class="topbar-left">
+                        <span class="topbar-logo">PRIVACY</span>
+                        <div class="topbar-room-id">
+                            <i class="fa-solid fa-hashtag"></i>
+                            <span id="chatRoomIdDisplay">------</span>
+                            <i class="fa-regular fa-copy copy-btn-inline" onclick="if(window.copyChatRoomId) window.copyChatRoomId()" title="Copy Room ID"></i>
+                        </div>
+                    </div>
+                    <div class="topbar-right">
+                        <div class="call-buttons" id="callButtons">
+                            <button class="call-btn" id="voiceCallBtn" onclick="if(window.startVoiceCall) window.startVoiceCall()" title="Voice Call" style="display: none;">
+                                <i class="fa-solid fa-phone"></i>
+                            </button>
+                            <button class="call-btn" id="videoCallBtn" onclick="if(window.startVideoCall) window.startVideoCall()" title="Video Call" style="display: none;">
+                                <i class="fa-solid fa-video"></i>
+                            </button>
+                        </div>
+                        <div class="status-indicator">
+                            <div class="status-dot"></div>
+                            <span>ENCRYPTED</span>
+                        </div>
+                        <button class="btn btn-danger btn-small" onclick="if(window.leaveRoom) window.leaveRoom()">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; LEAVE
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+                        <div class="empty-state-text">
+                            No transmissions yet...<span class="blink-underscore">_</span><br>
+                            <span style="font-size: 0.7rem; margin-top: 4px; display: inline-block;">
+                                Waiting for signals on this channel
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                    <span id="typingUsername">Someone</span> is typing...
+                </div>
+                
+                <div class="image-upload-preview" id="imageUploadPreview">
+                    <img class="preview-thumb" id="previewThumb" src="" alt="Preview">
+                    <span id="previewFileName">filename.png</span>
+                    <span class="remove-preview" onclick="if(window.removeUploadPreview) window.removeUploadPreview()"><i class="fa-solid fa-xmark"></i></span>
+                </div>
+                
+                <div class="chat-input-area">
+                    <label class="file-upload-label" title="Attach file">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <input type="file" id="fileInput" onchange="if(window.handleFileSelect) window.handleFileSelect(event)" accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+                    </label>
+                    <div class="chat-input-wrapper">
+                        <span class="chat-input-prefix">></span>
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Enter transmission..." autocomplete="off" spellcheck="false">
+                    </div>
+                    <button class="send-btn" onclick="if(window.sendMessage) window.sendMessage()" title="Send">
+                        <i class="fa-solid fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Call Modal -->
+    <div class="call-modal" id="callModal">
+        <div class="call-modal-header">
+            <span class="call-modal-title">PRIVACY Call</span>
+            <button class="call-modal-close" onclick="if(window.endCall) window.endCall()">✕</button>
+        </div>
+        <div class="call-modal-body">
+            <div class="call-video-container" id="callVideoContainer" style="display: none;">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <video id="localVideo" autoplay playsinline muted></video>
+            </div>
+            <div class="call-controls">
+                <button class="call-control-btn" id="muteBtn" onclick="if(window.toggleMute) window.toggleMute()">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+                <button class="call-control-btn" id="videoBtn" onclick="if(window.toggleVideo) window.toggleVideo()" style="display: none;">
+                    <i class="fa-solid fa-video"></i>
+                </button>
+                <button class="call-control-btn" onclick="if(window.endCall) window.endCall()" style="color: #ff0000;">
+                    <i class="fa-solid fa-phone-slash"></i> End
+                </button>
+            </div>
+            <div class="call-status" id="callStatus">Connecting...</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/version.js"></script>
+    <script src="/js/socket.js"></script>
+    <script src="/js/call.js"></script>
+    <script src="/js/chat.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
