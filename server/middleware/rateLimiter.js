@@ -62,10 +62,10 @@ class SocketRateLimiter {
 }
 
 // Different rate limiters for different events
-const messageLimiter = new SocketRateLimiter(10, 10000); // 10 messages per 10 seconds
-const typingLimiter = new SocketRateLimiter(30, 60000); // 30 typing events per minute
-const callLimiter = new SocketRateLimiter(5, 30000); // 5 call signals per 30 seconds
-const roomActionLimiter = new SocketRateLimiter(3, 60000); // 3 room actions per minute
+const messageLimiter = new SocketRateLimiter(10, 10000);
+const typingLimiter = new SocketRateLimiter(30, 60000);
+const callLimiter = new SocketRateLimiter(5, 30000);
+const roomActionLimiter = new SocketRateLimiter(3, 60000);
 
 module.exports = {
   generalLimiter,
