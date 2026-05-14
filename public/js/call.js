@@ -13,23 +13,25 @@ const configuration = {
 };
 
 function initCallHandlers(socket) {
-    // Incoming call
+    console.log('Initializing call handlers...');
+    
     socket.on('incoming_call', async (data) => {
+        console.log('Incoming call from:', data.fromUsername);
         showIncomingCallToast(data);
     });
     
-    // Call answer
     socket.on('call_answer', async (data) => {
+        console.log('Call answered');
         if (peerConnection) {
             try {
                 await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+                updateCallStatus('Connected');
             } catch (error) {
                 console.error('Error setting remote description:', error);
             }
         }
     });
     
-    // ICE candidate
     socket.on('ice_candidate', async (data) => {
         if (peerConnection) {
             try {
@@ -40,21 +42,17 @@ function initCallHandlers(socket) {
         }
     });
     
-    // Call rejected
     socket.on('call_rejected', (data) => {
+        console.log('Call rejected by:', data.byUsername);
         hideCallModal();
-        if (typeof showToast === 'function') {
-            showToast(`${data.byUsername} rejected the call`, 'fa-solid fa-phone-slash');
-        }
+        showToast(`${data.byUsername} rejected the call`, 'fa-solid fa-phone-slash');
         endCall();
     });
     
-    // Call ended by other party
     socket.on('call_ended', () => {
+        console.log('Call ended by other party');
         hideCallModal();
-        if (typeof showToast === 'function') {
-            showToast('Call ended by the other party', 'fa-solid fa-phone-slash');
-        }
+        showToast('Call ended by the other party', 'fa-solid fa-phone-slash');
         endCall();
     });
 }
@@ -123,13 +121,9 @@ async function startCall(targetUserId, callType) {
     } catch (error) {
         console.error('Error starting call:', error);
         if (error.name === 'NotAllowedError') {
-            if (typeof showToast === 'function') {
-                showToast('Microphone/Camera access denied. Please check permissions.', 'fa-solid fa-exclamation-triangle');
-            }
+            showToast('Microphone/Camera access denied. Please check permissions.', 'fa-solid fa-exclamation-triangle');
         } else {
-            if (typeof showToast === 'function') {
-                showToast('Failed to start call', 'fa-solid fa-exclamation-triangle');
-            }
+            showToast('Failed to start call', 'fa-solid fa-exclamation-triangle');
         }
     }
 }
@@ -191,9 +185,7 @@ async function acceptCall(data, callType) {
         
     } catch (error) {
         console.error('Error accepting call:', error);
-        if (typeof showToast === 'function') {
-            showToast('Failed to accept call', 'fa-solid fa-exclamation-triangle');
-        }
+        showToast('Failed to accept call', 'fa-solid fa-exclamation-triangle');
         endCall();
     }
 }
@@ -225,7 +217,6 @@ function endCall() {
     hideCallModal();
     hideIncomingCallToast();
     
-    // Reset video elements
     const localVideo = document.getElementById('localVideo');
     const remoteVideo = document.getElementById('remoteVideo');
     if (localVideo) localVideo.srcObject = null;
@@ -273,12 +264,15 @@ function toggleVideo() {
 function showCallModal(showVideo) {
     const modal = document.getElementById('callModal');
     const videoContainer = document.getElementById('callVideoContainer');
+    const videoBtn = document.getElementById('videoBtn');
     
     if (modal) {
         if (showVideo) {
             if (videoContainer) videoContainer.style.display = 'flex';
+            if (videoBtn) videoBtn.style.display = 'flex';
         } else {
             if (videoContainer) videoContainer.style.display = 'none';
+            if (videoBtn) videoBtn.style.display = 'none';
         }
         modal.classList.add('active');
     }
@@ -290,7 +284,6 @@ function hideCallModal() {
 }
 
 function showIncomingCallToast(data) {
-    // Remove existing toast
     hideIncomingCallToast();
     
     const toast = document.createElement('div');
@@ -303,10 +296,10 @@ function showIncomingCallToast(data) {
             <div style="font-size: 0.7rem; color: var(--text-dim);">${data.callType === 'video' ? '📹 Video Call' : '🎙️ Voice Call'}</div>
         </div>
         <div class="call-actions">
-            <button class="call-control-btn" onclick="window.acceptCallFromGlobals('${data.fromUserId}', '${data.callType}')">
+            <button class="call-control-btn" onclick="window.acceptCallFromToast('${data.fromUserId}', '${data.callType}')">
                 <i class="fa-solid fa-phone"></i> Accept
             </button>
-            <button class="call-control-btn" onclick="window.rejectCallFromGlobals('${data.fromUserId}')">
+            <button class="call-control-btn" onclick="window.rejectCallFromToast('${data.fromUserId}')">
                 <i class="fa-solid fa-phone-slash"></i> Reject
             </button>
         </div>
@@ -324,14 +317,18 @@ function updateCallStatus(status) {
     if (statusElem) statusElem.textContent = status;
 }
 
-// Global functions for call buttons
-window.acceptCallFromGlobals = function(userId, callType) {
-    // This will be set from chat.js
-    if (typeof window.acceptCall === 'function') {
-        window.acceptCall(userId, callType);
-    }
+// Global functions
+window.acceptCallFromToast = function(userId, callType) {
+    // Store the call data globally
+    window.pendingCall = { fromUserId: userId, callType: callType };
+    acceptCall({ fromUserId: userId, offer: window.pendingOffer }, callType);
 };
 
-window.rejectCallFromGlobals = function(userId) {
+window.rejectCallFromToast = function(userId) {
     rejectCall(userId);
 };
+
+function acceptCall(data, callType) {
+    // This will be implemented fully
+    console.log('Accepting call from:', data.fromUserId);
+}
