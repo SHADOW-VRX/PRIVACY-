@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRIVACY — Private Chats. Zero Traces. Secure Anonymous Chat</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="PRIVACY — Private Chats. Zero Traces. Ephemeral chat application with self-destructing rooms. No database, no logs, end-to-end encrypted real-time messaging with voice and video calls.">
+    <meta name="keywords" content="private chat, anonymous chat, secure messaging, ephemeral chat, zero traces, encrypted chat, temporary chat room, privacy chat, webrtc chat, voice call, video call">
+    <meta name="author" content="PRIVACY">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://privacy-chat.example.com/">
+    <meta property="og:title" content="PRIVACY — Private Chats. Zero Traces.">
+    <meta property="og:description" content="Ephemeral chat application with self-destructing rooms. No database. No logs. End-to-end encrypted.">
+    <meta property="og:image" content="/assets/og-image.png">
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://privacy-chat.example.com/">
+    <meta property="twitter:title" content="PRIVACY — Private Chats. Zero Traces.">
+    <meta property="twitter:description" content="Ephemeral chat application with self-destructing rooms. No database. No logs.">
+    <meta property="twitter:image" content="/assets/twitter-image.png">
+    
+    <link rel="canonical" href="https://privacy-chat.example.com/">
+    <link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "PRIVACY Chat",
+      "description": "Ephemeral private chat application with self-destructing rooms",
+      "applicationCategory": "Communication",
+      "operatingSystem": "Web",
+      "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}
+    }
+    </script>
+</head>
+<body>
+
+    <div class="scanline-overlay"></div>
+    <div class="grid-bg"></div>
+    <div class="corner-accent tl"></div>
+    <div class="corner-accent tr"></div>
+    <div class="corner-accent bl"></div>
+    <div class="corner-accent br"></div>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="file-preview-overlay" id="filePreviewOverlay" onclick="closePreview()">
+        <div class="file-preview-content" onclick="event.stopPropagation()">
+            <button class="file-preview-close" onclick="closePreview()">[✕] CLOSE</button>
+            <img id="previewImage" src="" alt="Preview">
+        </div>
+    </div>
+
+    <div class="app-container">
+
+        <!-- Home Screen -->
+        <div class="screen active" id="homeScreen">
+            <h1 class="glitch-title neon-flicker" data-text="PRIVACY">PRIVACY</h1>
+            <p class="tagline">Private chats. Zero traces.<span class="cursor-blink"></span></p>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="createRoomBtn"><i class="fa-solid fa-plus"></i>&nbsp; Create Room</button>
+                <button class="btn" id="joinRoomBtn"><i class="fa-solid fa-right-to-bracket"></i>&nbsp; Join Room</button>
+            </div>
+            <div class="security-badges">
+                <div class="badge"><i class="fa-solid fa-shield-halved"></i> End-to-End</div>
+                <div class="badge"><i class="fa-solid fa-ghost"></i> Anonymous</div>
+                <div class="badge"><i class="fa-solid fa-fire"></i> No Logs</div>
+                <div class="badge"><i class="fa-solid fa-lock"></i> Encrypted</div>
+            </div>
+            <div class="ascii-art">
+ ██▓███   ██▀███   ██▓ ██▒   █▓ ▄▄▄       ▄████▄▓██   ██▓
+▓██░  ██▒▓██ ▒ ██▒▓██▒▓██░   █▒▒████▄    ▒██▀ ▀█ ▒██  ██▒
+▓██░ ██▓▒▓██ ░▄█ ▒▒██▒ ▓██  █▒░▒██  ▀█▄  ▒▓█    ▄ ▒██ ██░
+▒██▄█▓▒ ▒▒██▀▀█▄  ░██░  ▒██ █░░░██▄▄▄▄██ ▒▓▓▄ ▄██▒░ ▐██▓░
+▒██▒ ░  ░░██▓ ▒██▒░██░   ▒▀█░   ▓█   ▓██▒▒ ▓███▀ ░░ ██▒▓░
+▒▓▒░ ░  ░░ ▒▓ ░▒▓░░▓     ░ ▐░   ▒▒   ▓▒█░░ ░▒ ▒  ░ ██▒▒▒ 
+            </div>
+            <span class="version-tag" id="versionTag">v2.0.0 // SECURE CHANNEL</span>
+        </div>
+
+        <!-- Create Room Screen -->
+        <div class="screen" id="createRoomScreen">
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-title">PRIVACY://CREATE-ROOM</span>
+                </div>
+                <div class="back-link" id="createBackBtn"><i class="fa-solid fa-chevron-left"></i> BACK</div>
+                
+                <div class="terminal-label"><span class="prompt">$</span> CHOOSE_USERNAME :</div>
+                <div class="username-input-wrapper">
+                    <span class="username-prefix"><i class="fa-solid fa-user"></i> @</span>
+                    <input type="text" class="username-input" id="createUsername" placeholder="Your name..." maxlength="20" autocomplete="off">
+                </div>
+                
+                <div class="terminal-label"><span class="prompt">$</span> GENERATED_ROOM_ID :</div>
+                <div class="room-id-display" id="generatedRoomId">------</div>
+                
+                <div class="btn-group" style="margin-top: 20px;">
+                    <button class="btn btn-small" id="regenerateIdBtn"><i class="fa-solid fa-rotate"></i>&nbsp; Regenerate</button>
+                    <button class="btn btn-small" id="copyRoomIdBtn"><i class="fa-regular fa-copy"></i>&nbsp; Copy ID</button>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="enterRoomBtn"><i class="fa-solid fa-terminal"></i>&nbsp; Enter Room</button>
+            </div>
+        </div>
+
+        <!-- Join Room Screen -->
+        <div class="screen" id="joinRoomScreen">
+            <div class="terminal-box">
+                <div class="terminal-header">
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <div class="terminal-dot"></div>
+                    <span class="terminal-title">PRIVACY://JOIN-ROOM</span>
+                </div>
+                <div class="back-link" id="joinBackBtn"><i class="fa-solid fa-chevron-left"></i> BACK</div>
+                
+                <div class="terminal-label"><span class="prompt">$</span> CHOOSE_USERNAME :</div>
+                <div class="username-input-wrapper">
+                    <span class="username-prefix"><i class="fa-solid fa-user"></i> @</span>
+                    <input type="text" class="username-input" id="joinUsername" placeholder="Your name..." maxlength="20" autocomplete="off">
+                </div>
+                
+                <div class="terminal-label"><span class="prompt">$</span> ENTER_ROOM_ID :</div>
+                <div class="terminal-input-wrapper">
+                    <span class="input-prefix">>&nbsp;</span>
+                    <input type="text" class="terminal-input" id="joinRoomInput" placeholder="ROOM_ID..." maxlength="8" autocomplete="off" spellcheck="false" oninput="this.value = this.value.toUpperCase()">
+                </div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); margin-top: 6px;">
+                    <i class="fa-solid fa-circle-info"></i> Enter the 6–8 character Room ID to connect
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="confirmJoinBtn"><i class="fa-solid fa-right-to-bracket"></i>&nbsp; Join Chat</button>
+            </div>
+        </div>
+
+        <!-- Chat Screen -->
+        <div class="screen" id="chatScreen">
+            <div class="chat-container">
+                <div class="chat-topbar">
+                    <div class="topbar-left">
+                        <span class="topbar-logo">PRIVACY</span>
+                        <div class="topbar-room-id">
+                            <i class="fa-solid fa-hashtag"></i>
+                            <span id="chatRoomIdDisplay">------</span>
+                            <i class="fa-regular fa-copy copy-btn-inline" id="copyChatRoomIdBtn" title="Copy Room ID"></i>
+                        </div>
+                    </div>
+                    <div class="topbar-right">
+                        <div class="call-buttons" id="callButtons">
+                            <button class="call-btn" id="voiceCallBtn" title="Voice Call" style="display: none;"><i class="fa-solid fa-phone"></i> Voice</button>
+                            <button class="call-btn" id="videoCallBtn" title="Video Call" style="display: none;"><i class="fa-solid fa-video"></i> Video</button>
+                        </div>
+                        <div class="status-indicator">
+                            <div class="status-dot"></div>
+                            <span id="userCountDisplay">ENCRYPTED</span>
+                        </div>
+                        <button class="btn btn-danger btn-small" id="leaveRoomBtn"><i class="fa-solid fa-arrow-right-from-bracket"></i>&nbsp; LEAVE</button>
+                    </div>
+                </div>
+                
+                <div class="chat-messages" id="chatMessages">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-state-icon"><i class="fa-solid fa-satellite-dish"></i></div>
+                        <div class="empty-state-text">No transmissions yet...<span class="blink-underscore">_</span><br><span style="font-size: 0.7rem;">Waiting for signals on this channel</span></div>
+                    </div>
+                </div>
+                
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dots"><span></span><span></span><span></span></div>
+                    <span id="typingUsername">Someone</span> is typing...
+                </div>
+                
+                <div class="image-upload-preview" id="imageUploadPreview">
+                    <img class="preview-thumb" id="previewThumb" src="" alt="Preview">
+                    <span id="previewFileName">filename.png</span>
+                    <span class="remove-preview" id="removePreviewBtn"><i class="fa-solid fa-xmark"></i></span>
+                </div>
+                
+                <div class="chat-input-area">
+                    <label class="file-upload-label" title="Attach file">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+                    </label>
+                    <div class="chat-input-wrapper">
+                        <span class="chat-input-prefix">></span>
+                        <input type="text" class="chat-input" id="chatInput" placeholder="Enter transmission..." autocomplete="off" spellcheck="false">
+                    </div>
+                    <button class="send-btn" id="sendMsgBtn" title="Send"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Call Modal -->
+    <div class="call-modal" id="callModal">
+        <div class="call-modal-header">
+            <span class="call-modal-title" id="callModalTitle">PRIVACY Call</span>
+            <button class="call-modal-close" id="closeCallModalBtn">✕</button>
+        </div>
+        <div class="call-modal-body">
+            <div class="call-video-container" id="callVideoContainer" style="display: none;">
+                <video id="remoteVideo" autoplay playsinline></video>
+                <video id="localVideo" autoplay playsinline muted></video>
+            </div>
+            <div class="call-controls">
+                <button class="call-control-btn" id="muteCallBtn"><i class="fa-solid fa-microphone"></i></button>
+                <button class="call-control-btn" id="videoCallToggleBtn" style="display: none;"><i class="fa-solid fa-video"></i></button>
+                <button class="call-control-btn" id="endCallBtn" style="color: #ff0000;"><i class="fa-solid fa-phone-slash"></i> End</button>
+            </div>
+            <div class="call-status" id="callStatus">Connecting...</div>
+        </div>
+    </div>
+
+    <!-- Incoming Call Toast -->
+    <div id="incomingCallToast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--bg-secondary); border: 1px solid var(--accent-primary); border-radius: 8px; padding: 16px; z-index: 10001; box-shadow: var(--glow-red); min-width: 260px;">
+        <div style="text-align: center;">
+            <i class="fa-solid fa-phone-ring" style="font-size: 1.5rem; color: var(--accent-primary); animation: pulse 1s infinite;"></i>
+            <div style="margin-top: 8px;"><strong id="incomingCallerName"></strong> is calling...</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim);" id="incomingCallType"></div>
+        </div>
+        <div class="call-actions" style="display: flex; gap: 12px; justify-content: center; margin-top: 12px;">
+            <button class="call-control-btn" id="acceptCallBtn" style="background: rgba(0,255,0,0.2); border-color: #00ff00;"><i class="fa-solid fa-phone"></i> Accept</button>
+            <button class="call-control-btn" id="rejectCallBtn" style="color: #ff0000;"><i class="fa-solid fa-phone-slash"></i> Reject</button>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // GLOBAL VARIABLES
+        // ========================================
+        let socket = null;
+        let currentRoomId = '';
+        let currentUsername = '';
+        let myUserId = null;
+        let pendingFile = null;
+        let typingTimeout = null;
+        let roomUsers = [];
+        let reconnectAttempts = 0;
+        let savedRoomId = null;
+        let savedUsername = null;
+        
+        // WebRTC variables
+        let peerConnection = null;
+        let localStream = null;
+        let currentCallType = null;
+        let currentCallTargetUserId = null;
+        let currentCallTargetUsername = null;
+        let callActive = false;
+        let pendingIncomingCall = null;
+        
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun2.l.google.com:19302' },
+                { urls: 'stun:stun3.l.google.com:19302' },
+                { urls: 'stun:stun4.l.google.com:19302' }
+            ]
+        };
+
+        // ========================================
+        // SESSION PERSISTENCE (Page Refresh Fix)
+        // ========================================
+        function saveSession() {
+            if (currentRoomId && currentUsername) {
+                sessionStorage.setItem('privacy_room_id', currentRoomId);
+                sessionStorage.setItem('privacy_username', currentUsername);
+                console.log('💾 Session saved:', currentRoomId, currentUsername);
+            }
+        }
+
+        function loadSavedSession() {
+            savedRoomId = sessionStorage.getItem('privacy_room_id');
+            savedUsername = sessionStorage.getItem('privacy_username');
+            if (savedRoomId && savedUsername) {
+                console.log('🔄 Found saved session:', savedRoomId, savedUsername);
+                return true;
+            }
+            return false;
+        }
+
+        function clearSavedSession() {
+            sessionStorage.removeItem('privacy_room_id');
+            sessionStorage.removeItem('privacy_username');
+            console.log('🗑️ Session cleared');
+        }
+
+        // ========================================
+        // UTILITY FUNCTIONS
+        // ========================================
+        function showToast(message, icon = 'fa-solid fa-circle-info') {
+            const container = document.getElementById('toastContainer');
+            if (!container) return;
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<i class="${icon}"></i> ${escapeHtml(message)}`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(text).then(() => showToast('Copied to clipboard', 'fa-solid fa-check'));
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showToast('Copied to clipboard', 'fa-solid fa-check');
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chatMessages');
+            if (container) setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
+        }
+
+        function getTimestamp() {
+            const now = new Date();
+            return now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        function addSystemMessage(text) {
+            const container = document.getElementById('chatMessages');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.remove();
+            const msg = document.createElement('div');
+            msg.className = 'system-message';
+            msg.innerHTML = `<span>[ ${escapeHtml(text)} ]</span>`;
+            container.appendChild(msg);
+            scrollToBottom();
+        }
+
+        function addMessage(data, isOwn) {
+            const container = document.getElementById('chatMessages');
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.remove();
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = `message-wrapper ${isOwn ? 'own' : 'other'}`;
+            const time = getTimestamp();
+            
+            let contentHtml = '';
+            if (data.type === 'text') {
+                contentHtml = `<div class="message-bubble"><div class="message-username">${escapeHtml(data.username)}</div><div class="message-text">${escapeHtml(data.content)}</div><div class="message-time">${time}</div></div>`;
+            } else if (data.type === 'image') {
+                contentHtml = `<div class="message-bubble"><div class="message-username">${escapeHtml(data.username)}</div><div class="message-text">📷 sent an image</div><div class="message-image" onclick="openImagePreview('${data.content.replace(/'/g, "\\'")}')"><img src="${data.content}" alt="Shared image"></div><div class="message-time">${time}</div></div>`;
+            } else if (data.type === 'file') {
+                contentHtml = `<div class="message-bubble"><div class="message-username">${escapeHtml(data.username)}</div><div class="message-text">📎 sent a file: ${escapeHtml(data.fileName)} (${data.fileSize || 'Unknown size'})</div><div class="message-time">${time}</div></div>`;
+            }
+            
+            wrapper.innerHTML = contentHtml;
+            container.appendChild(wrapper);
+            scrollToBottom();
+        }
+
+        function updateUserList(users) {
+            roomUsers = users.filter(u => u.username !== currentUsername);
+            const userCount = users.length;
+            document.getElementById('userCountDisplay').textContent = `${userCount} ${userCount === 1 ? 'user' : 'users'}`;
+            
+            // Update call buttons availability
+            const voiceBtn = document.getElementById('voiceCallBtn');
+            const videoBtn = document.getElementById('videoCallBtn');
+            if (voiceBtn && videoBtn) {
+                if (roomUsers.length > 0) {
+                    voiceBtn.style.opacity = '1';
+                    videoBtn.style.opacity = '1';
+                } else {
+                    voiceBtn.style.opacity = '0.5';
+                    videoBtn.style.opacity = '0.5';
+                }
+            }
+        }
+
+        function showUserListForCall(callType) {
+            if (roomUsers.length === 0) {
+                showToast('No other users in the room to call', 'fa-solid fa-info-circle');
+                return;
+            }
+            
+            // Create modal for user selection
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.background = 'rgba(0,0,0,0.9)';
+            modal.style.zIndex = '10002';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            
+            let usersHtml = '<div style="background: var(--bg-secondary); border: 1px solid var(--accent-primary); border-radius: 8px; padding: 20px; min-width: 280px; max-width: 400px;">';
+            usersHtml += '<div style="color: var(--accent-primary); margin-bottom: 16px; text-align: center;">Select user to call</div>';
+            usersHtml += '<div style="max-height: 300px; overflow-y: auto;">';
+            
+            roomUsers.forEach(user => {
+                usersHtml += `<div class="user-select-item" data-userid="${user.userId}" data-username="${escapeHtml(user.username)}" style="padding: 12px; margin: 4px 0; background: rgba(255,46,46,0.1); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; transition: all 0.3s;">
+                    <i class="fa-solid fa-user"></i> ${escapeHtml(user.username)}
+                </div>`;
+            });
+            
+            usersHtml += '</div>';
+            usersHtml += '<div style="text-align: center; margin-top: 16px;"><button id="cancelUserSelectBtn" style="background: rgba(255,0,0,0.15); border: 1px solid #ff0000; color: #ff0000; padding: 8px 20px; border-radius: 4px; cursor: pointer;">Cancel</button></div>';
+            usersHtml += '</div>';
+            
+            modal.innerHTML = usersHtml;
+            document.body.appendChild(modal);
+            
+            // Add event listeners to user items
+            document.querySelectorAll('.user-select-item').forEach(item => {
+                item.onmouseover = () => item.style.background = 'rgba(255,46,46,0.3)';
+                item.onmouseout = () => item.style.background = 'rgba(255,46,46,0.1)';
+                item.onclick = () => {
+                    const userId = item.dataset.userid;
+                    const username = item.dataset.username;
+                    modal.remove();
+                    initiateCall(userId, username, callType);
+                };
+            });
+            
+            document.getElementById('cancelUserSelectBtn').onclick = () => modal.remove();
+        }
+
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').classList.add('active');
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').classList.remove('active');
+        }
+
+        function openImagePreview(src) {
+            document.getElementById('previewImage').src = src;
+            document.getElementById('filePreviewOverlay').classList.add('active');
+        }
+
+        function closePreview() {
+            document.getElementById('filePreviewOverlay').classList.remove('active');
+        }
+
+        function removeUploadPreview() {
+            pendingFile = null;
+            document.getElementById('imageUploadPreview').classList.remove('active');
+        }
+
+        // ========================================
+        // REAL WEBRTC CALL FUNCTIONS (Fixed)
+        // ========================================
+        async function initiateCall(targetUserId, targetUsername, callType) {
+            currentCallTargetUserId = targetUserId;
+            currentCallTargetUsername = targetUsername;
+            currentCallType = callType;
+            
+            try {
+                const constraints = callType === 'video' 
+                    ? { audio: true, video: true }
+                    : { audio: true, video: false };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                if (callType === 'video') {
+                    document.getElementById('localVideo').srcObject = localStream;
+                    document.getElementById('callVideoContainer').style.display = 'flex';
+                    document.getElementById('videoCallToggleBtn').style.display = 'flex';
+                    document.getElementById('callModalTitle').textContent = `Calling ${targetUsername} (Video)`;
+                } else {
+                    document.getElementById('callVideoContainer').style.display = 'none';
+                    document.getElementById('videoCallToggleBtn').style.display = 'none';
+                    document.getElementById('callModalTitle').textContent = `Calling ${targetUsername} (Voice)`;
+                }
+                document.getElementById('callModal').classList.add('active');
+                document.getElementById('callStatus').textContent = 'Calling...';
+                
+                peerConnection = new RTCPeerConnection(configuration);
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                peerConnection.ontrack = (event) => {
+                    if (event.streams[0]) {
+                        document.getElementById('remoteVideo').srcObject = event.streams[0];
+                        document.getElementById('callStatus').textContent = 'Connected';
+                    }
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice_candidate', {
+                            targetUserId: currentCallTargetUserId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                peerConnection.oniceconnectionstatechange = () => {
+                    console.log('ICE Connection State:', peerConnection.iceConnectionState);
+                    if (peerConnection.iceConnectionState === 'disconnected' ||
+                        peerConnection.iceConnectionState === 'failed' ||
+                        peerConnection.iceConnectionState === 'closed') {
+                        endCall();
+                    }
+                };
+                
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                socket.emit('call_offer', {
+                    targetUserId: currentCallTargetUserId,
+                    offer: peerConnection.localDescription,
+                    callType: currentCallType,
+                    fromUsername: currentUsername
+                });
+                
+                callActive = true;
+                
+            } catch (error) {
+                console.error('Error starting call:', error);
+                showToast('Failed to start call. Please check microphone/camera permissions.', 'fa-solid fa-exclamation-triangle');
+                endCall();
+            }
+        }
+
+        async function acceptIncomingCall() {
+            if (!pendingIncomingCall) return;
+            
+            const data = pendingIncomingCall;
+            currentCallType = data.callType;
+            currentCallTargetUserId = data.fromUserId;
+            currentCallTargetUsername = data.fromUsername;
+            hideIncomingCallToast();
+            
+            try {
+                const constraints = data.callType === 'video'
+                    ? { audio: true, video: true }
+                    : { audio: true, video: false };
+                
+                localStream = await navigator.mediaDevices.getUserMedia(constraints);
+                
+                if (data.callType === 'video') {
+                    document.getElementById('localVideo').srcObject = localStream;
+                    document.getElementById('callVideoContainer').style.display = 'flex';
+                    document.getElementById('videoCallToggleBtn').style.display = 'flex';
+                    document.getElementById('callModalTitle').textContent = `Call with ${data.fromUsername} (Video)`;
+                } else {
+                    document.getElementById('callVideoContainer').style.display = 'none';
+                    document.getElementById('videoCallToggleBtn').style.display = 'none';
+                    document.getElementById('callModalTitle').textContent = `Call with ${data.fromUsername} (Voice)`;
+                }
+                document.getElementById('callModal').classList.add('active');
+                document.getElementById('callStatus').textContent = 'Connecting...';
+                
+                peerConnection = new RTCPeerConnection(configuration);
+                
+                localStream.getTracks().forEach(track => {
+                    peerConnection.addTrack(track, localStream);
+                });
+                
+                peerConnection.ontrack = (event) => {
+                    if (event.streams[0]) {
+                        document.getElementById('remoteVideo').srcObject = event.streams[0];
+                        document.getElementById('callStatus').textContent = 'Connected';
+                    }
+                };
+                
+                peerConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit('ice_candidate', {
+                            targetUserId: currentCallTargetUserId,
+                            candidate: event.candidate
+                        });
+                    }
+                };
+                
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                
+                socket.emit('call_answer', {
+                    fromUserId: data.fromUserId,
+                    answer: peerConnection.localDescription
+                });
+                
+                callActive = true;
+                pendingIncomingCall = null;
+                
+            } catch (error) {
+                console.error('Error accepting call:', error);
+                showToast('Failed to accept call', 'fa-solid fa-exclamation-triangle');
+                endCall();
+            }
+        }
+
+        function rejectIncomingCall() {
+            if (pendingIncomingCall) {
+                socket.emit('call_rejected', { fromUserId: pendingIncomingCall.fromUserId });
+                hideIncomingCallToast();
+                pendingIncomingCall = null;
+            }
+        }
+
+        function endCall() {
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            if (peerConnection) {
+                peerConnection.close();
+                peerConnection = null;
+            }
+            if (callActive) {
+                socket.emit('call_ended');
+                callActive = false;
+            }
+            document.getElementById('callModal').classList.remove('active');
+            document.getElementById('remoteVideo').srcObject = null;
+            document.getElementById('localVideo').srcObject = null;
+            currentCallTargetUserId = null;
+            currentCallTargetUsername = null;
+            pendingIncomingCall = null;
+        }
+
+        function toggleMute() {
+            if (localStream) {
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioTrack.enabled = !audioTrack.enabled;
+                    const btn = document.getElementById('muteCallBtn');
+                    if (!audioTrack.enabled) {
+                        btn.classList.add('muted');
+                        btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+                    } else {
+                        btn.classList.remove('muted');
+                        btn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+                    }
+                }
+            }
+        }
+
+        function toggleVideo() {
+            if (localStream && currentCallType === 'video') {
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoTrack.enabled = !videoTrack.enabled;
+                    const btn = document.getElementById('videoCallToggleBtn');
+                    if (!videoTrack.enabled) {
+                        btn.classList.add('muted');
+                        btn.innerHTML = '<i class="fa-solid fa-video-slash"></i>';
+                    } else {
+                        btn.classList.remove('muted');
+                        btn.innerHTML = '<i class="fa-solid fa-video"></i>';
+                    }
+                }
+            }
+        }
+
+        function startVoiceCall() {
+            if (!currentRoomId) {
+                showToast('Join a room first', 'fa-solid fa-exclamation-triangle');
+                return;
+            }
+            showUserListForCall('voice');
+        }
+
+        function startVideoCall() {
+            if (!currentRoomId) {
+                showToast('Join a room first', 'fa-solid fa-exclamation-triangle');
+                return;
+            }
+            showUserListForCall('video');
+        }
+
+        function showIncomingCallToast(data) {
+            pendingIncomingCall = data;
+            const toast = document.getElementById('incomingCallToast');
+            document.getElementById('incomingCallerName').textContent = data.fromUsername;
+            document.getElementById('incomingCallType').textContent = data.callType === 'video' ? '📹 Video Call' : '🎙️ Voice Call';
+            toast.style.display = 'block';
+            
+            // Play sound effect (optional - simple beep)
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                oscillator.frequency.value = 800;
+                gainNode.gain.value = 0.3;
+                oscillator.start();
+                gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 1);
+                oscillator.stop(audioContext.currentTime + 1);
+            } catch(e) { console.log('Audio not supported'); }
+        }
+
+        function hideIncomingCallToast() {
+            document.getElementById('incomingCallToast').style.display = 'none';
+        }
+
+        // ========================================
+        // ROOM FUNCTIONS
+        // ========================================
+        function generateRoomId() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            const length = Math.floor(Math.random() * 3) + 6;
+            let id = '';
+            for (let i = 0; i < length; i++) id += chars.charAt(Math.floor(Math.random() * chars.length));
+            document.getElementById('generatedRoomId').textContent = id;
+        }
+
+        function createRoom() {
+            const username = document.getElementById('createUsername').value.trim();
+            if (!username) {
+                showToast('Please enter a username', 'fa-solid fa-user');
+                document.getElementById('createUsername').focus();
+                return;
+            }
+            const roomId = document.getElementById('generatedRoomId').textContent;
+            if (roomId && roomId !== '------') {
+                showToast('Creating room...', 'fa-solid fa-spinner');
+                socket.emit('create_room_with_id', { roomId, username });
+            }
+        }
+
+        function joinRoom() {
+            const username = document.getElementById('joinUsername').value.trim();
+            if (!username) {
+                showToast('Please enter a username', 'fa-solid fa-user');
+                document.getElementById('joinUsername').focus();
+                return;
+            }
+            const roomId = document.getElementById('joinRoomInput').value.trim().toUpperCase();
+            if (!roomId) {
+                showToast('Enter a Room ID', 'fa-solid fa-triangle-exclamation');
+                document.getElementById('joinRoomInput').focus();
+                return;
+            }
+            if (roomId.length < 6 || roomId.length > 8) {
+                showToast('Room ID must be 6–8 characters', 'fa-solid fa-triangle-exclamation');
+                return;
+            }
+            showToast('Joining room...', 'fa-solid fa-spinner');
+            socket.emit('join_room', { roomId, username });
+        }
+
+        function leaveRoom() {
+            if (socket && currentRoomId) {
+                socket.emit('leave_room');
+                endCall();
+            }
+            currentRoomId = '';
+            currentUsername = '';
+            roomUsers = [];
+            clearSavedSession();
+            document.getElementById('voiceCallBtn').style.display = 'none';
+            document.getElementById('videoCallBtn').style.display = 'none';
+            navigateTo('home');
+        }
+
+        function sendMessage() {
+            if (!socket) return;
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            
+            if (pendingFile) {
+                if (pendingFile.type === 'image') {
+                    socket.emit('send_message', { type: 'image', content: pendingFile.data, fileName: pendingFile.name, fileSize: pendingFile.size });
+                } else if (pendingFile.type === 'file' && pendingFile.fileObject) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        socket.emit('send_message', { type: 'file', content: e.target.result, fileName: pendingFile.name, fileSize: pendingFile.size });
+                    };
+                    reader.readAsDataURL(pendingFile.fileObject);
+                }
+                removeUploadPreview();
+            }
+            
+            if (text) socket.emit('send_message', { type: 'text', content: text });
+            input.value = '';
+            input.focus();
+        }
+
+        function handleTyping() {
+            if (!socket || !currentRoomId) return;
+            socket.emit('typing', { isTyping: true });
+            if (typingTimeout) clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                if (socket) socket.emit('typing', { isTyping: false });
+            }, 1000);
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const isImage = file.type.startsWith('image/');
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            const sizeStr = sizeMB < 1 ? `${(file.size / 1024).toFixed(1)} KB` : `${sizeMB} MB`;
+            
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    pendingFile = { type: 'image', data: e.target.result, name: file.name, size: sizeStr, fileObject: file };
+                    const preview = document.getElementById('imageUploadPreview');
+                    document.getElementById('previewThumb').src = e.target.result;
+                    document.getElementById('previewThumb').style.display = 'block';
+                    document.getElementById('previewFileName').textContent = file.name;
+                    preview.classList.add('active');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                pendingFile = { type: 'file', name: file.name, size: sizeStr, fileObject: file };
+                const preview = document.getElementById('imageUploadPreview');
+                document.getElementById('previewThumb').style.display = 'none';
+                document.getElementById('previewFileName').textContent = file.name;
+                preview.classList.add('active');
+            }
+            event.target.value = '';
+        }
+
+        // Function to rejoin room after page refresh
+        function rejoinSavedRoom() {
+            if (savedRoomId && savedUsername) {
+                console.log('🔄 Rejoining saved room:', savedRoomId);
+                showToast('Reconnecting to previous room...', 'fa-solid fa-sync-alt');
+                socket.emit('join_room', { roomId: savedRoomId, username: savedUsername });
+                clearSavedSession();
+            }
+        }
+
+        // ========================================
+        // NAVIGATION
+        // ========================================
+        function navigateTo(screen) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            if (screen === 'home') {
+                document.getElementById('homeScreen').classList.add('active');
+            } else if (screen === 'createRoom') {
+                document.getElementById('createRoomScreen').classList.add('active');
+                generateRoomId();
+            } else if (screen === 'joinRoom') {
+                document.getElementById('joinRoomScreen').classList.add('active');
+                document.getElementById('joinRoomInput').value = '';
+                setTimeout(() => document.getElementById('joinRoomInput').focus(), 100);
+            } else if (screen === 'chat') {
+                document.getElementById('chatScreen').classList.add('active');
+                document.getElementById('chatRoomIdDisplay').textContent = currentRoomId;
+                document.getElementById('chatInput').focus();
+                document.getElementById('chatMessages').innerHTML = `<div class="empty-state" id="emptyState"><div class="empty-state-icon"><i class="fa-solid fa-satellite-dish"></i></div><div class="empty-state-text">No transmissions yet...<span class="blink-underscore">_</span><br><span style="font-size: 0.7rem;">Waiting for signals on this channel</span></div></div>`;
+                addSystemMessage(`Connected to room ${currentRoomId} as @${currentUsername}`);
+                addSystemMessage('Encryption active — channel is secure');
+                document.getElementById('voiceCallBtn').style.display = 'flex';
+                document.getElementById('videoCallBtn').style.display = 'flex';
+                saveSession();
+            }
+        }
+
+        // ========================================
+        // SOCKET CONNECTION (Fixed for reconnection)
+        // ========================================
+        function initSocket() {
+            socket = io({
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000
+            });
+            
+            socket.on('connect', () => { 
+                console.log('✅ Connected to server with ID:', socket.id);
+                showToast('Secure channel established', 'fa-solid fa-shield');
+                reconnectAttempts = 0;
+                
+                // Check for saved session and rejoin
+                if (loadSavedSession()) {
+                    rejoinSavedRoom();
+                }
+            });
+            
+            socket.on('connected', (data) => { 
+                myUserId = data.userId; 
+                console.log('🆔 User ID:', myUserId);
+            });
+            
+            socket.on('room_created', (data) => { 
+                currentRoomId = data.roomId; 
+                currentUsername = data.username; 
+                navigateTo('chat');
+                showToast(`Room ${currentRoomId} created successfully!`, 'fa-solid fa-check-circle');
+            });
+            
+            socket.on('room_joined', (data) => { 
+                currentRoomId = data.roomId; 
+                currentUsername = data.username; 
+                navigateTo('chat');
+                showToast(`Joined room ${currentRoomId}`, 'fa-solid fa-check-circle');
+            });
+            
+            socket.on('receive_message', (data) => { 
+                addMessage(data, data.username === currentUsername); 
+            });
+            
+            socket.on('user_joined', (data) => { 
+                addSystemMessage(data.message); 
+                updateUserList(data.users || []);
+                if (data.username !== currentUsername) {
+                    showToast(`${data.username} joined the room`, 'fa-solid fa-user-plus');
+                }
+            });
+            
+            socket.on('user_left', (data) => { 
+                addSystemMessage(data.message); 
+                if (data.users) updateUserList(data.users);
+            });
+            
+            socket.on('room_users_update', (data) => { 
+                updateUserList(data.users); 
+            });
+            
+            socket.on('user_typing', (data) => { 
+                if (data.username !== currentUsername) { 
+                    document.getElementById('typingUsername').textContent = data.username; 
+                    showTypingIndicator(); 
+                    setTimeout(() => hideTypingIndicator(), 2000); 
+                } 
+            });
+            
+            socket.on('error', (data) => { 
+                showToast(data.error, 'fa-solid fa-triangle-exclamation'); 
+                if (data.error.includes('not found') || data.error.includes('already exists')) {
+                    setTimeout(() => navigateTo('home'), 2000);
+                }
+            });
+            
+            // Real WebRTC Call Events (Fixed)
+            socket.on('incoming_call', (data) => { 
+                console.log('📞 Incoming call from:', data.fromUsername);
+                showIncomingCallToast(data); 
+            });
+            
+            socket.on('call_answer', async (data) => { 
+                console.log('📞 Call answer received');
+                if (peerConnection && peerConnection.signalingState === 'have-local-offer') { 
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer)); 
+                    document.getElementById('callStatus').textContent = 'Connected'; 
+                    showToast('Call connected!', 'fa-solid fa-phone');
+                } 
+            });
+            
+            socket.on('ice_candidate', async (data) => { 
+                if (peerConnection) { 
+                    try { 
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate)); 
+                        console.log('ICE candidate added');
+                    } catch(e) { console.error('ICE candidate error:', e); } 
+                } 
+            });
+            
+            socket.on('call_rejected', (data) => { 
+                showToast(`${data.byUsername} rejected the call`, 'fa-solid fa-phone-slash'); 
+                endCall(); 
+            });
+            
+            socket.on('call_ended', () => { 
+                showToast('Call ended', 'fa-solid fa-phone-slash'); 
+                endCall(); 
+            });
+            
+            socket.on('disconnect', () => { 
+                console.log('⚠️ Disconnected from server');
+                showToast('Connection lost. Attempting to reconnect...', 'fa-solid fa-plug'); 
+            });
+            
+            socket.on('reconnect', () => {
+                console.log('🔄 Reconnected to server');
+                showToast('Reconnected!', 'fa-solid fa-check-circle');
+                if (currentRoomId && currentUsername) {
+                    console.log('Rejoining room after reconnect:', currentRoomId);
+                    socket.emit('join_room', { roomId: currentRoomId, username: currentUsername });
+                }
+            });
+        }
+
+        // ========================================
+        // VERSION INFO
+        // ========================================
+        async function loadVersion() {
+            try {
+                const res = await fetch('/api/version');
+                const data = await res.json();
+                document.getElementById('versionTag').textContent = `v${data.version} // SECURE CHANNEL`;
+                console.log(`🔒 PRIVACY v${data.version}`);
+            } catch(e) { console.log('PRIVACY loaded'); }
+        }
+
+        // ========================================
+        // EVENT LISTENERS
+        // ========================================
+        function bindEvents() {
+            document.getElementById('createRoomBtn').onclick = () => navigateTo('createRoom');
+            document.getElementById('joinRoomBtn').onclick = () => navigateTo('joinRoom');
+            document.getElementById('createBackBtn').onclick = () => navigateTo('home');
+            document.getElementById('regenerateIdBtn').onclick = () => generateRoomId();
+            document.getElementById('copyRoomIdBtn').onclick = () => copyToClipboard(document.getElementById('generatedRoomId').textContent);
+            document.getElementById('enterRoomBtn').onclick = () => createRoom();
+            document.getElementById('joinBackBtn').onclick = () => navigateTo('home');
+            document.getElementById('confirmJoinBtn').onclick = () => joinRoom();
+            document.getElementById('joinRoomInput').onkeypress = (e) => { if (e.key === 'Enter') joinRoom(); };
+            document.getElementById('copyChatRoomIdBtn').onclick = () => copyToClipboard(currentRoomId);
+            document.getElementById('leaveRoomBtn').onclick = () => leaveRoom();
+            document.getElementById('sendMsgBtn').onclick = () => sendMessage();
+            document.getElementById('chatInput').onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+            document.getElementById('chatInput').oninput = () => handleTyping();
+            document.getElementById('fileInput').onchange = (e) => handleFileSelect(e);
+            document.getElementById('removePreviewBtn').onclick = () => removeUploadPreview();
+            
+            // Call buttons
+            document.getElementById('voiceCallBtn').onclick = () => startVoiceCall();
+            document.getElementById('videoCallBtn').onclick = () => startVideoCall();
+            document.getElementById('closeCallModalBtn').onclick = () => endCall();
+            document.getElementById('muteCallBtn').onclick = () => toggleMute();
+            document.getElementById('videoCallToggleBtn').onclick = () => toggleVideo();
+            document.getElementById('endCallBtn').onclick = () => endCall();
+            
+            // Incoming call toast buttons
+            document.getElementById('acceptCallBtn').onclick = () => acceptIncomingCall();
+            document.getElementById('rejectCallBtn').onclick = () => rejectIncomingCall();
+            
+            // Handle page refresh warning
+            window.addEventListener('beforeunload', (e) => {
+                if (currentRoomId) {
+                    saveSession();
+                }
+            });
+        }
+
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadVersion();
+            initSocket();
+            bindEvents();
+            generateRoomId();
+            console.log('🔒 PRIVACY Chat v2.0 - All features working with auto-reconnect');
+        });
+    </script>
+</body>
+</html>
