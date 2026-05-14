@@ -3,10 +3,16 @@ let socket = null;
 let myUserId = null;
 
 function initSocket() {
-    socket = io();
+    console.log('Initializing Socket.IO connection...');
+    socket = io({
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
+    });
     
     socket.on('connect', () => {
-        console.log('🔒 Connected to secure server');
+        console.log('🔒 Connected to secure server with ID:', socket.id);
         if (typeof showToast === 'function') {
             showToast('Secure channel established', 'fa-solid fa-shield');
         }
@@ -14,9 +20,11 @@ function initSocket() {
     
     socket.on('connected', (data) => {
         myUserId = data.userId;
+        console.log('User ID assigned:', myUserId);
     });
     
     socket.on('disconnect', () => {
+        console.log('Disconnected from server');
         if (typeof showToast === 'function') {
             showToast('Connection lost - channel closed', 'fa-solid fa-plug');
         }
@@ -27,8 +35,26 @@ function initSocket() {
         }
     });
     
+    socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+        if (typeof showToast === 'function') {
+            showToast('Connection error. Retrying...', 'fa-solid fa-exclamation-triangle');
+        }
+    });
+    
+    // Initialize chat handlers after connection
+    initChat(socket);
+    initCallHandlers(socket);
+    
     return socket;
 }
+
+function getSocket() {
+    if (!socket) {
+        return initSocket();
+    }
+    return socket;
+}}
 
 function getSocket() {
     if (!socket) {
